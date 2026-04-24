@@ -48,18 +48,22 @@ def draw_overlay(
     recording: bool = False,
     paused: bool = False,
     show_help: bool = True,
+    frame_width: int = 0,
+    frame_height: int = 0,
 ) -> np.ndarray:
     """
     프레임 위에 정보 패널과 도움말을 렌더링합니다.
 
     Args:
-        frame      : 출력 이미지 (BGR ndarray)
-        registry   : PipelineRegistry 인스턴스
-        fps_counter: FPSCounter 인스턴스
-        config     : DisplayConfig 인스턴스
-        recording  : 현재 녹화 중인지 여부
-        paused     : 일시정지 여부
-        show_help  : 도움말 표시 여부
+        frame        : 출력 이미지 (BGR ndarray)
+        registry     : PipelineRegistry 인스턴스
+        fps_counter  : FPSCounter 인스턴스
+        config       : DisplayConfig 인스턴스
+        recording    : 현재 녹화 중인지 여부
+        paused       : 일시정지 여부
+        show_help    : 도움말 표시 여부
+        frame_width  : 원본 프레임 너비 (해상도 표시용, 0이면 img 크기 사용)
+        frame_height : 원본 프레임 높이 (해상도 표시용, 0이면 img 크기 사용)
 
     Returns:
         오버레이가 합성된 이미지
@@ -71,6 +75,10 @@ def draw_overlay(
     panel_w = config.info_panel_width
     pad = 8
     line_h = int(22 * fs / 0.6)
+
+    # 해상도: 인수로 받은 값 우선, 없으면 현재 프레임 크기 사용
+    res_w = frame_width  if frame_width  > 0 else w
+    res_h = frame_height if frame_height > 0 else h
 
     # ── 좌측 정보 패널 배경 ─────────────────────────────────────────
     names: List[str] = []
@@ -85,14 +93,15 @@ def draw_overlay(
             alpha=0.70,
         )
 
-    # ── FPS / 통계 배경 ───────────────────────────────────────────────
-    x_r = w - 160
+    # ── FPS / 해상도 / 통계 패널 배경 (4행으로 확장) ─────────────────
+    # 행 구성: [해상도]  [FPS]  [Frames]  [Time]
+    x_r = w - 185
     y_t = pad + line_h
     if config.show_fps:
         _draw_rounded_rect(
             img,
             (x_r - 8, pad),
-            (w - pad, y_t + line_h * 2 + 8),
+            (w - pad, y_t + line_h * 3 + 8),   # 기존 2행 → 3행(+해상도)
             COLOR_BG,
             alpha=0.65,
         )
@@ -162,12 +171,14 @@ def draw_overlay(
                 break
 
     if config.show_fps:
+        res_txt = f"{res_w} x {res_h}"
         fps_txt = f"FPS: {fps_counter.fps:5.1f}"
         frm_txt = f"Frames: {fps_counter.total_frames}"
         ela_txt = f"Time: {fps_counter.elapsed_seconds:6.1f}s"
-        txt.put(fps_txt, (x_r, y_t), fs, COLOR_ACTIVE, ft)
-        txt.put(frm_txt, (x_r, y_t + line_h), fs * 0.75, COLOR_TEXT, ft)
-        txt.put(ela_txt, (x_r, y_t + line_h * 2), fs * 0.75, COLOR_DIM, ft)
+        txt.put(res_txt, (x_r, y_t),              fs,        COLOR_HEADER, ft)  # 해상도 (강조)
+        txt.put(fps_txt, (x_r, y_t + line_h),     fs,        COLOR_ACTIVE, ft)  # FPS
+        txt.put(frm_txt, (x_r, y_t + line_h * 2), fs * 0.75, COLOR_TEXT,  ft)  # Frames
+        txt.put(ela_txt, (x_r, y_t + line_h * 3), fs * 0.75, COLOR_DIM,   ft)  # Time
 
     txt.put(badge, (bx, by), fs * 1.1, COLOR_ACTIVE, ft + 1)
 
