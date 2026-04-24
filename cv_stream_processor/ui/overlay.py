@@ -1,6 +1,9 @@
 """
 오버레이 렌더러 (ui/overlay.py)
 프레임 위에 FPS, 파이프라인 정보, 도움말 등을 렌더링
+
+한글 출력은 PIL 기반 put_text_kr / get_text_size_kr 를 사용합니다.
+(cv2.putText는 ASCII 전용으로 한글이 깨지는 문제가 있음)
 """
 
 from __future__ import annotations
@@ -13,6 +16,8 @@ if TYPE_CHECKING:
     from ..core.pipeline_registry import PipelineRegistry
     from ..utils.fps_counter import FPSCounter
     from ..config import DisplayConfig
+
+from ..utils.korean_text import put_text_kr, get_text_size_kr
 
 
 # ── 색상 팔레트 ─────────────────────────────────────────────────────
@@ -33,6 +38,11 @@ def _draw_rounded_rect(
     overlay = img.copy()
     cv2.rectangle(overlay, pt1, pt2, color, -1)
     cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
+
+
+def _font_size(fs: float, base: int = 18) -> int:
+    """DisplayConfig의 font_scale을 PIL 폰트 크기(px)로 변환합니다."""
+    return max(10, int(base * fs / 0.6))
 
 
 def draw_overlay(
@@ -66,6 +76,11 @@ def draw_overlay(
     font = cv2.FONT_HERSHEY_SIMPLEX
     panel_w = config.info_panel_width
 
+    # PIL 폰트 크기
+    fsize_normal = _font_size(fs, 18)
+    fsize_small  = _font_size(fs * 0.75, 18)
+    fsize_header = _font_size(fs * 0.85, 18)
+
     # ── 좌측 정보 패널 ──────────────────────────────────────────────
     if config.show_pipeline_info:
         pad = 8
@@ -81,7 +96,7 @@ def draw_overlay(
         )
 
         y = pad + line_h
-        # 헤더
+        # 헤더 (ASCII 전용 → cv2.putText 유지)
         cv2.putText(img, "[ PIPELINES ]", (pad + 6, y),
                     font, fs * 0.85, COLOR_HEADER, ft)
         y += line_h
@@ -98,7 +113,7 @@ def draw_overlay(
             if len(label) > max_chars:
                 label = label[:max_chars - 1] + "~"
 
-            cv2.putText(img, label, (pad + 6, y), font, fs * 0.75, color, ft)
+            put_text_kr(img, label, (pad + 6, y), font_size=fsize_small, color=color)
             y += line_h
             if y > h - pad:
                 break
@@ -113,6 +128,7 @@ def draw_overlay(
         y_t = pad + line_h
         _draw_rounded_rect(img, (x_r - 8, pad), (w - pad, y_t + line_h * 2 + 8),
                             COLOR_BG, alpha=0.65)
+        # FPS 수치는 ASCII이므로 cv2.putText 유지
         cv2.putText(img, fps_txt, (x_r, y_t),          font, fs, COLOR_ACTIVE, ft)
         cv2.putText(img, frm_txt, (x_r, y_t + line_h), font, fs * 0.75, COLOR_TEXT, ft)
         cv2.putText(img, ela_txt, (x_r, y_t + line_h * 2), font, fs * 0.75, COLOR_DIM, ft)
@@ -133,19 +149,22 @@ def draw_overlay(
 
     # ── 일시정지 표시 ────────────────────────────────────────────────
     if paused:
-        _draw_rounded_rect(img, (w // 2 - 60, h // 2 - 24),
-                            (w // 2 + 60, h // 2 + 24), (0, 0, 0), alpha=0.7)
-        cv2.putText(img, "PAUSED", (w // 2 - 50, h // 2 + 8),
-                    font, fs * 1.2, COLOR_WARN, ft + 1)
+        pause_txt = "일시정지"
+        ptw, pth = get_text_size_kr(pause_txt, font_size=fsize_normal)
+        _draw_rounded_rect(img, (w // 2 - ptw // 2 - 12, h // 2 - pth - 8),
+                            (w // 2 + ptw // 2 + 12, h // 2 + 8), (0, 0, 0), alpha=0.7)
+        put_text_kr(img, pause_txt,
+                    (w // 2 - ptw // 2, h // 2),
+                    font_size=fsize_normal, color=COLOR_WARN)
 
     # ── 도움말 패널 ──────────────────────────────────────────────────
     if show_help and config.show_help:
-        _draw_help(img, fs, ft, font, h, w)
+        _draw_help(img, fs, ft, font, h, w, fsize_small)
 
     return img
 
 
-def _draw_help(img, fs, ft, font, h, w) -> None:
+def _draw_help(img, fs, ft, font, h, w, fsize_small: int) -> None:
     """하단 도움말 패널을 렌더링합니다."""
     help_lines = [
         "Q/ESC: 종료   SPACE: 일시정지   S: 스크린샷",
@@ -163,4 +182,4 @@ def _draw_help(img, fs, ft, font, h, w) -> None:
 
     for i, line in enumerate(help_lines):
         y = y0 + pad + line_h * (i + 1)
-        cv2.putText(img, line, (pad + 4, y), font, fs * 0.72, COLOR_DIM, ft)
+        put_text_kr(img, line, (pad + 4, y), font_size=fsize_small, color=COLOR_DIM)
