@@ -9,9 +9,12 @@ opencv-python>=4.8.0
 # numpy (OpenCV와 함께 자동 설치되지만 명시적으로 지정)
 numpy>=1.24.0
 
+# 한글 등 유니코드 오버레이 텍스트 (Pillow → OpenCV BGR 합성)
+Pillow>=10.0.0
+
 # ── 선택적 의존성 ───────────────────────────────────────────
 # opencv-contrib 기능 (오일 페인팅 등 xphoto 모듈) 사용 시 주석 해제:
-# opencv-contrib-python>=4.8.0
+ opencv-contrib-python>=4.8.0
 
 # 타입 힌트 지원 (Python 3.11에서는 내장 지원으로 불필요하지만 호환성용)
-# typing-extensions>=4.0.0
+ typing-extensions>=4.0.0

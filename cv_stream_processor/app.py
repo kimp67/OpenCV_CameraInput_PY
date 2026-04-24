@@ -17,6 +17,7 @@ from .config import AppConfig, DEFAULT_CONFIG
 from .core import Frame, PipelineRegistry, StreamCapture
 from .core.pipeline_factory import register_all
 from .ui import draw_overlay, ActionHandler, process_key
+from .ui.pil_text import BgrPilTextLayer, text_size
 from .utils import FPSCounter, app_logger
 
 
@@ -191,12 +192,15 @@ class CVStreamApp:
     def _make_no_signal(w: int = 1280, h: int = 720) -> "cv2.Mat":
         """신호 없음 이미지를 생성합니다."""
         import numpy as np
+
         img = np.zeros((h, w, 3), dtype="uint8")
-        msg = "NO SIGNAL — Waiting for camera..."
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        (tw, th), _ = cv2.getTextSize(msg, font, 1.0, 2)
-        cv2.putText(img, msg, ((w - tw) // 2, (h + th) // 2),
-                    font, 1.0, (0, 180, 255), 2)
+        msg = "신호 없음 — 카메라·스트림 연결 대기 중"
+        cv_scale = 1.0
+        tw, th = text_size(msg, cv_scale)
+        y = (h + th) // 2
+        txt = BgrPilTextLayer(img)
+        txt.put(msg, ((w - tw) // 2, y), cv_scale, (0, 180, 255), 2)
+        txt.commit()
         return img
 
     def _show_no_signal(self) -> None:

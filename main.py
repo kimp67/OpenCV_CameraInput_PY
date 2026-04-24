@@ -147,14 +147,14 @@ def main() -> int:
     )
 
     # ── 애플리케이션 실행 ────────────────────────────────────────────
-    print(f"""
+    print("""
 ╔══════════════════════════════════════════════════╗
-║      CV Stream Processor  v1.0.0                ║
-║      Python 3.11  +  OpenJDK 17                 ║
+║      CV Stream Processor  v1.0.0                 ║
+║      Python 3.11  +  OpenJDK 17                  ║
 ╠══════════════════════════════════════════════════╣
-║  Source   : {str(source):<37s}║
-║  Pipeline : {args.pipeline:<37s}║
-║  Size     : {args.width}x{args.height:<29s}║
+║  Source   : {str(source):<37s}                   ║
+║  Pipeline : {args.pipeline:<37s}                 ║
+║  Size     : {args.width}x{args.height:<29s}      ║
 ╚══════════════════════════════════════════════════╝
     """)
 
