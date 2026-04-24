@@ -169,6 +169,8 @@ class CVStreamApp:
     def _render(self, frame: Frame) -> "cv2.Mat":
         """오버레이를 합성한 최종 출력 이미지를 반환합니다."""
         output = frame.output  # processed or original
+        # 원본(캡처) 해상도를 오버레이에 전달
+        src_h, src_w = frame.image.shape[:2]
         return draw_overlay(
             frame=output,
             registry=self._registry,
@@ -177,6 +179,8 @@ class CVStreamApp:
             recording=self._action.recording,
             paused=self._action.paused,
             show_help=self._action.show_help,
+            frame_width=src_w,
+            frame_height=src_h,
         )
 
     # ── 유틸리티 ────────────────────────────────────────────────────
